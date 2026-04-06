@@ -1,0 +1,39 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+<div class="flex justify-center mb-12">
+    <div class="glass-panel p-8 w-full max-w-lg relative">
+        <div class="mb-6 border-b border-gray-700 pb-4 flex justify-between items-center">
+            <h2 class="text-2xl font-bold text-white">Add Funds</h2>
+            <a href="{% url 'dashboard' %}" class="text-gray-400 hover:text-white transition">Cancel</a>
+        </div>
+        
+        <div class="mb-6 bg-vault-900/50 p-4 rounded-lg border border-gray-700">
+            <h3 class="text-lg font-bold text-white mb-1">{{ goal.name }}</h3>
+            <p class="text-sm text-gray-400">Current: <span class="text-white">₹{{ goal.current_amount }}</span> / ₹{{ goal.target_amount }}</p>
+        </div>
+        
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-300">Amount to Add</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">₹</span>
+                    {{ form.amount }}
+                </div>
+            </div>
+            
+            <button type="submit" class="w-full text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg text-sm px-5 py-3 text-center transition">Confirm Contribution</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const amt = document.getElementById('{{ form.amount.id_for_label }}');
+        if(amt) {
+            amt.classList.remove('form-control');
+            amt.classList.add('bg-vault-900', 'border', 'border-gray-700', 'text-white', 'sm:text-sm', 'rounded-lg', 'focus:ring-blue-500', 'focus:border-blue-500', 'block', 'w-full', 'p-2.5', 'pl-8');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+<div class="flex justify-center mb-12">
+    <div class="glass-panel p-8 w-full max-w-2xl relative">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+            <h2 class="text-2xl font-bold text-white">{{ action }} Record</h2>
+            <a href="{% url 'dashboard' %}" class="text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </a>
+        </div>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Col -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<p class="mt-1 text-xs text-red-500">{{ form.title.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.amount.label }}</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">₹</span>
+                            <div class="currency-input">{{ form.amount }}</div>
+                        </div>
+                        {% if form.amount.errors %}<p class="mt-1 text-xs text-red-500">{{ form.amount.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.due_date.label }}</label>
+                        {{ form.due_date }}
+                        {% if form.due_date.errors %}<p class="mt-1 text-xs text-red-500">{{ form.due_date.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.category.label }}</label>
+                        {{ form.category }}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.notes.label }}</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+                
+                <!-- Right Col -->
+                <div class="space-y-4 border-l border-gray-700/50 pl-0 md:pl-6">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.group.label }}</label>
+                        {{ form.group }}
+                        <p class="text-xs text-gray-500 mt-1">Optional. Tie expense to a group.</p>
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.expense_type.label }}</label>
+                        {{ form.expense_type }}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.status.label }}</label>
+                        {{ form.status }}
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.payment_method.label }}</label>
+                        {{ form.payment_method }}
+                    </div>
+                    
+                    <div class="flex items-center gap-3 bg-vault-800/50 p-3 rounded-lg border border-gray-700 mt-4">
+                        {{ form.is_autopay }}
+                        <label class="text-sm font-medium text-gray-200 cursor-pointer" for="{{ form.is_autopay.id_for_label }}">Autopay enabled</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SHARED VAULT SPLIT SECTION -->
+            <div class="mt-6 border border-purple-500/30 bg-purple-900/10 p-5 rounded-xl" x-data="{ 
+                shared: document.getElementById('{{ form.is_shared.id_for_label }}').checked,
+                hasGroup: document.getElementById('{{ form.group.id_for_label }}').value !== ''
+            }">
+                <div class="flex items-center gap-3 mb-3">
+                    {{ form.is_shared }}
+                    <label class="text-sm font-bold text-purple-300 cursor-pointer flex items-center gap-2" for="{{ form.is_shared.id_for_label }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Split with Friends
+                    </label>
+                </div>
+                
+                <div class="text-sm text-gray-400 mb-3" x-show="!shared && !hasGroup">
+                    Check this box to split this expense equally (or manually) with your friends. Note: If a Group is selected above, the split options will appear automatically.
+                </div>
+                
+                <div class="overflow-hidden transition-all duration-300" x-show="shared || hasGroup" x-collapse>
+                    <div id="split-with-container">
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.split_with.label }}</label>
+                        <div class="bg-vault-900/50 border border-gray-700 rounded-lg p-3 max-h-40 overflow-y-auto split-friends-list mb-3">
+                            {{ form.split_with }}
+                        </div>
+                    </div>
+                    
+                    <label class="block mb-2 text-sm font-medium text-gray-300">{{ form.split_type.label }}</label>
+                    {{ form.split_type }}
+                    
+                    <div id="dynamic-split-inputs" class="mt-4 space-y-2"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 font-medium rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition shadow mt-6">Save Record</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const groupsDataStr = '{{ groups_data|escapejs }}';
+    window.groupsData = groupsDataStr ? JSON.parse(groupsDataStr) : {};
+
+    const friendsDataStr = '{{ friends_data|escapejs }}';
+    window.friendsData = friendsDataStr ? JSON.parse(friendsDataStr) : [];
+
+    const existingSplitsStr = '{{ existing_splits|escapejs }}';
+    window.existingSplits = existingSplitsStr ? JSON.parse(existingSplitsStr) : {};
+
+    const currentUserStr = '{{ current_user|escapejs }}';
+    window.currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input:not([type="checkbox"]):not([type="hidden"]), select, textarea');
+        inputs.forEach(input => {
+            input.classList.add('bg-vault-900', 'border', 'border-gray-700', 'text-white', 'sm:text-sm', 'rounded-lg', 'focus:ring-blue-500', 'focus:border-blue-500', 'block', 'w-full', 'p-2.5');
+            input.classList.remove('form-control', 'form-select');
+        });
+        
+        const amountInput = document.querySelector('input[name="amount"]');
+        if (amountInput) amountInput.classList.add('pl-10');
+
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.classList.add('w-5', 'h-5', 'text-blue-600', 'bg-vault-900', 'border-gray-600', 'rounded', 'focus:ring-blue-500', 'focus:ring-2', 'cursor-pointer');
+            cb.classList.remove('form-check-input');
+            if(cb.name === 'is_shared') {
+                cb.setAttribute('@change', 'shared = $el.checked');
+            }
+        });
+        
+        const splitList = document.querySelector('.split-friends-list ul');
+        if (splitList) {
+            splitList.classList.add('space-y-2');
+            splitList.querySelectorAll('li').forEach(li => {
+                li.classList.add('flex', 'items-center', 'gap-3');
+                const label = li.querySelector('label');
+                if(label) label.classList.add('text-sm', 'text-gray-300', 'cursor-pointer', 'w-full');
+            });
+        }
+
+        // --- SPLIT LOGIC UI ---
+        const groupSelect = document.getElementById('id_group');
+        const splitTypeSelect = document.getElementById('id_split_type');
+        const isSharedCheckbox = document.getElementById('id_is_shared');
+        const splitWithContainer = document.getElementById('split-with-container');
+        const dynamicInputsContainer = document.getElementById('dynamic-split-inputs');
+        const friendsCheckboxes = document.querySelectorAll('.split-friends-list input[type="checkbox"]');
+
+        // Add Alpine.js change handler to group select
+        groupSelect.setAttribute('@change', 'hasGroup = $el.value !== ""');
+
+        function renderDynamicInputs() {
+            dynamicInputsContainer.innerHTML = '';
+            const splitType = splitTypeSelect.value;
+            if (splitType === 'Equal') return; // no extra inputs needed
+            
+            let members = [];
+            const groupId = groupSelect.value;
+            
+            if (groupId && window.groupsData[groupId]) {
+                members = window.groupsData[groupId];
+            } else if (isSharedCheckbox.checked) {
+                members = window.friendsData;
+            }
+
+            if (members.length === 0) return;
+
+            const inputType = splitType === 'Percentage' ? '%' : '₹';
+            const inputNamePrefix = splitType === 'Percentage' ? 'split_percent_' : 'split_amount_';
+
+            members.forEach(member => {
+                const isSelected = groupId || (isSharedCheckbox.checked && document.querySelector(`input[name="split_with"][value="${member.id}"]`)?.checked);
+                const el = document.createElement('div');
+                el.className = 'flex items-center justify-between bg-vault-800 p-2 rounded border border-gray-700';
+                el.innerHTML = `
+                    <span class="text-sm text-gray-300">${member.username}</span>
+                    <div class="flex items-center gap-2">
+                        <input type="number" step="0.01" min="0" name="${inputNamePrefix}${member.id}" class="bg-vault-900 border border-gray-600 text-white text-sm rounded focus:ring-blue-500 focus:border-blue-500 block w-24 p-1" placeholder="0" value="${window.existingSplits[member.id] || ''}">
+                        <span class="text-gray-400 text-sm">${inputType}</span>
+                    </div>
+                `;
+                dynamicInputsContainer.appendChild(el);
+            });
+        }
+
+        function toggleSplitContainers() {
+            if (groupSelect.value) {
+                splitWithContainer.style.display = 'none';
+                if (!isSharedCheckbox.checked) {
+                    isSharedCheckbox.checked = true;
+                    // Trigger Alpine x-data change
+                    isSharedCheckbox.dispatchEvent(new Event('change'));
+                }
+            } else {
+                splitWithContainer.style.display = 'block';
+            }
+            renderDynamicInputs();
+        }
+
+        groupSelect.addEventListener('change', toggleSplitContainers);
+        splitTypeSelect.addEventListener('change', renderDynamicInputs);
+        isSharedCheckbox.addEventListener('change', () => {
+            renderDynamicInputs();
+            toggleSplitContainers();
+        });
+        friendsCheckboxes.forEach(cb => cb.addEventListener('change', renderDynamicInputs));
+
+        // Pre-fill split_with checkboxes for edit
+        if (window.existingSplits) {
+            for (const userId of Object.keys(window.existingSplits)) {
+                const checkbox = document.querySelector(`input[name="split_with"][value="${userId}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                }
+            }
+            // Trigger render after pre-selection
+            setTimeout(() => renderDynamicInputs(), 100);
+        }
+
+        // Initial setup
+        toggleSplitContainers();
+    });
+</script>
+{% endblock %}

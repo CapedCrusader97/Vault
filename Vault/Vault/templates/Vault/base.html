@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vault - Premium Finance</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind Config for Custom Colors/Fonts -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        vault: { 900: '#0f172a', 800: '#1e293b', 700: '#334155', accent: '#3b82f6', glow: '#60a5fa' }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+        .glow-text { text-shadow: 0 0 15px rgba(96, 165, 250, 0.5); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col pt-20 bg-gradient-to-br from-vault-900 via-vault-900 to-black">
+
+    <!-- Premium Navbar -->
+    <nav class="fixed top-0 w-full z-50 glass-panel border-b-0 rounded-none border-x-0 border-t-0 px-6 py-4 flex justify-between items-center" x-data="{ userMenu: false }">
+        <div class="flex items-center gap-6">
+            <a href="{% url 'dashboard' %}" class="text-2xl font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 glow-text flex items-center gap-2">
+                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                VAULT
+            </a>
+            {% if user.is_authenticated %}
+                <div class="hidden md:flex gap-4 ml-6">
+                    <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white transition font-medium">Personal</a>
+                    <a href="{% url 'friends_dashboard' %}" class="text-gray-300 hover:text-white transition font-medium">Friends</a>
+                    <a href="{% url 'groups_dashboard' %}" class="text-gray-300 hover:text-white transition font-medium flex items-center gap-1">Groups <span class="bg-blue-600 text-xs px-1.5 py-0.5 rounded-full">New</span></a>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="flex items-center gap-4">
+            {% if user.is_authenticated %}
+                <div class="relative">
+                    <button @click="userMenu = !userMenu" @click.away="userMenu = false" class="flex items-center gap-2 text-sm font-medium text-gray-200 hover:text-white transition bg-vault-800/50 px-3 py-1.5 rounded-full border border-gray-700 hover:border-gray-500">
+                        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">{{ user.username.0|upper }}</div>
+                        <span class="hidden sm:block">{{ user.username }}</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <!-- Dropdown -->
+                    <div x-show="userMenu" x-transition.opacity.scale.95 class="absolute right-0 mt-2 w-48 glass-panel border border-gray-700 py-2 shadow-xl z-50 text-sm overflow-hidden" style="display: none;">
+                        <a href="{% url 'profile' %}" class="block px-4 py-2 text-gray-300 hover:bg-vault-700 hover:text-white transition">Account Settings</a>
+                        <form method="post" action="{% url 'logout' %}" class="block w-full text-left">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left px-4 py-2 text-red-400 hover:bg-vault-700 hover:text-red-300 transition">Logout</button>
+                        </form>
+                    </div>
+                </div>
+            {% else %}
+                <a href="{% url 'login' %}" class="text-sm font-medium text-gray-300 hover:text-white transition">Sign In</a>
+                <a href="{% url 'register' %}" class="text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-full transition shadow-lg shadow-blue-500/30">Get Started</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto px-4 py-8 relative z-10 w-full max-w-7xl">
+        {% if messages %}
+            <div class="fixed top-24 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md flex flex-col gap-2">
+                {% for message in messages %}
+                    <div class="glass-panel px-4 py-3 rounded text-sm text-center flex items-center justify-center gap-2 shadow-xl border-l-4 
+                        {% if message.tags == 'error' %}border-red-500 text-red-200{% else %}border-blue-500 text-blue-200{% endif %}"
+                        x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)" x-transition>
+                        {% if message.tags == 'success' %}<svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>

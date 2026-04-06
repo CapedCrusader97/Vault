@@ -1,0 +1,52 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+<div class="max-w-2xl mx-auto mt-12 px-4 sm:px-0">
+    <div class="glass-panel border border-red-500/20 p-8 sm:p-10 shadow-2xl shadow-black/20">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-gray-700/50 pb-6 mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-white">Delete Account</h1>
+                <p class="mt-3 max-w-xl text-sm text-gray-400">This is permanent and cannot be undone. Your Vault profile, expenses, and analytics will be erased immediately.</p>
+            </div>
+            <div class="inline-flex items-center gap-2 rounded-full bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 border border-red-500/20">
+                <svg class="w-5 h-5 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6m6 6V6"></path></svg>
+                Permanent action
+            </div>
+        </div>
+
+        <div class="rounded-3xl border border-red-500/20 bg-red-500/5 p-6 mb-8">
+            <div class="flex items-start gap-4">
+                <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-500/15 text-red-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.64 18h12.72a2 2 0 001.84-2.76l-2.8-5.23A2 2 0 0015.56 8H8.44a2 2 0 00-1.84 1.21L3.8 14.23A2 2 0 005.64 18z"></path></svg>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-white">Confirm Account Deletion</h2>
+                    <p class="mt-2 text-sm text-gray-400">Please review the details carefully before proceeding. Once deleted, this data cannot be restored.</p>
+                </div>
+            </div>
+
+            <ul class="mt-6 space-y-3 text-sm text-gray-300">
+                <li class="flex gap-3">
+                    <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                    All of your logged expenses will be permanently deleted.
+                </li>
+                <li class="flex gap-3">
+                    <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                    Your visual analytics and history will be lost.
+                </li>
+                <li class="flex gap-3">
+                    <span class="mt-1 inline-flex h-2.5 w-2.5 rounded-full bg-red-400"></span>
+                    This action <strong class="text-white">cannot</strong> be undone.
+                </li>
+            </ul>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div class="flex flex-col gap-4 sm:flex-row sm:justify-between">
+                <a href="{% url 'profile' %}" class="inline-flex items-center justify-center rounded-3xl border border-gray-700/80 bg-vault-800/70 px-5 py-3 text-sm font-medium text-gray-300 hover:bg-vault-800 transition">Cancel</a>
+                <button type="submit" class="inline-flex items-center justify-center rounded-3xl bg-gradient-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/20 hover:from-red-400 hover:to-orange-400 transition">Yes, Delete My Account</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

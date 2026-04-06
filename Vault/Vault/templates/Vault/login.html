@@ -1,0 +1,57 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+<div class="flex items-center justify-center min-h-[70vh]">
+    <div class="glass-panel p-8 max-w-sm w-full relative overflow-hidden">
+        <div class="absolute -top-20 -right-20 w-40 h-40 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
+        <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500 rounded-full blur-3xl opacity-20"></div>
+        
+        <div class="relative z-10">
+            <div class="text-center mb-8">
+                <svg class="w-12 h-12 text-blue-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                <h2 class="text-3xl font-bold text-white mb-2">Welcome Back</h2>
+                <p class="text-gray-400 text-sm">Please sign in to access your Vault.</p>
+            </div>
+            
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                {% if form.non_field_errors %}
+                    <div class="bg-red-900/50 border border-red-800 text-red-200 px-4 py-3 rounded relative text-sm" role="alert">
+                        {% for error in form.non_field_errors %}
+                            <span class="block sm:inline">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                {% for field in form %}
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <p class="mt-1 text-xs text-red-500">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="w-full text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 font-medium rounded-lg text-sm px-5 py-3 text-center shadow-lg shadow-blue-500/30 transition shadow mt-6">Log In</button>
+            </form>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'forgot_password' %}" class="text-sm text-gray-400 hover:text-white transition">Forgot password?</a>
+            </div>
+            <div class="mt-6 text-center text-sm text-gray-400 border-t border-gray-700 pt-6">
+                Don't have an account? <a href="{% url 'register' %}" class="text-blue-400 hover:text-blue-300 font-medium">Create one</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            if(input.type !== 'hidden' && input.type !== 'checkbox') {
+                input.classList.add('bg-vault-900', 'border', 'border-gray-700', 'text-white', 'sm:text-sm', 'rounded-lg', 'focus:ring-blue-500', 'focus:border-blue-500', 'block', 'w-full', 'p-2.5');
+            }
+        });
+    });
+</script>
+{% endblock %}

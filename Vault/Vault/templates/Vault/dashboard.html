@@ -1,0 +1,346 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+
+<!-- Header & Filters -->
+<div class="glass-panel p-5 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+        <h1 class="text-2xl font-bold text-white">Personal Dashboard</h1>
+        <p class="text-gray-400 text-sm">Track your expenses and budget.</p>
+    </div>
+    <form method="GET" class="flex flex-wrap items-center gap-3 bg-vault-800/50 p-2 rounded-xl border border-gray-700">
+        <select name="year" class="bg-vault-900 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+            {% for y in available_years %}
+                <option value="{{ y }}" {% if selected_year == y %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
+        <select name="month" class="bg-vault-900 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+            <option value="1" {% if selected_month == 1 %}selected{% endif %}>January</option>
+            <option value="2" {% if selected_month == 2 %}selected{% endif %}>February</option>
+            <option value="3" {% if selected_month == 3 %}selected{% endif %}>March</option>
+            <option value="4" {% if selected_month == 4 %}selected{% endif %}>April</option>
+            <option value="5" {% if selected_month == 5 %}selected{% endif %}>May</option>
+            <option value="6" {% if selected_month == 6 %}selected{% endif %}>June</option>
+            <option value="7" {% if selected_month == 7 %}selected{% endif %}>July</option>
+            <option value="8" {% if selected_month == 8 %}selected{% endif %}>August</option>
+            <option value="9" {% if selected_month == 9 %}selected{% endif %}>September</option>
+            <option value="10" {% if selected_month == 10 %}selected{% endif %}>October</option>
+            <option value="11" {% if selected_month == 11 %}selected{% endif %}>November</option>
+            <option value="12" {% if selected_month == 12 %}selected{% endif %}>December</option>
+        </select>
+        <select name="week" class="bg-vault-900 border border-gray-600 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2">
+            <option value="">Full Month (Cumulative)</option>
+            <option value="1" {% if selected_week == '1' %}selected{% endif %}>Week 1</option>
+            <option value="2" {% if selected_week == '2' %}selected{% endif %}>Week 2</option>
+            <option value="3" {% if selected_week == '3' %}selected{% endif %}>Week 3</option>
+            <option value="4" {% if selected_week == '4' %}selected{% endif %}>Week 4</option>
+            <option value="5" {% if selected_week == '5' %}selected{% endif %}>Week 5</option>
+            <option value="6" {% if selected_week == '6' %}selected{% endif %}>Week 6</option>
+        </select>
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm px-4 py-2 transition shadow-lg shadow-blue-500/20">Apply</button>
+        <a href="{% url 'dashboard' %}" class="text-sm text-gray-400 hover:text-white px-2 transition">Reset</a>
+    </form>
+</div>
+
+<!-- Budgets & Overview -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Budget Setter -->
+    <div class="glass-panel p-6 flex flex-col justify-center">
+        <h3 class="text-lg font-semibold text-white mb-4">Set Monthly Target</h3>
+        <form method="POST" class="flex gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="set_budget" value="1">
+            <div class="relative flex-grow">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">₹</span>
+                <input type="number" name="budget_amount" class="bg-vault-900 border border-gray-700 text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-8 p-2.5" placeholder="0.00" step="0.01" value="{{ monthly_budget }}">
+            </div>
+            <button class="bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-4 transition" type="submit">Set</button>
+        </form>
+    </div>
+
+    <!-- Budget Status widget -->
+    <div class="glass-panel p-6 md:col-span-2 flex items-center justify-between relative overflow-hidden group">
+        <div class="absolute inset-0 bg-gradient-to-r {% if not has_budget %}from-gray-800 to-gray-700{% elif is_over_budget %}from-red-900/50 to-red-600/30{% else %}from-green-900/50 to-emerald-600/30{% endif %} opacity-50 transition-opacity group-hover:opacity-70"></div>
+        <div class="z-10">
+            <h5 class="text-gray-300 font-medium mb-1">Budget Status</h5>
+            {% if not has_budget %}
+                <p class="text-white text-xl font-semibold">No target set for this month.</p>
+            {% elif is_over_budget %}
+                <p class="text-red-400 text-xl font-bold uppercase tracking-wider mb-1">Expense Limit Reached!</p>
+                <p class="text-red-300 text-lg font-semibold">Over budget by ₹{{ budget_remaining|floatformat:2 }}</p>
+            {% else %}
+                <p class="text-green-300 text-xl font-semibold">Saved ₹{{ budget_remaining|floatformat:2 }}</p>
+            {% endif %}
+        </div>
+        {% if has_budget %}
+        <div class="z-10 text-right">
+            <small class="text-gray-400 uppercase tracking-widest text-xs font-semibold">Spent / Budget</small>
+            <h3 class="text-3xl font-bold text-white">₹{{ total_spent_this_month|floatformat:2 }} <span class="text-gray-500 text-xl">/ ₹{{ monthly_budget|floatformat:2 }}</span></h3>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Highlight Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="glass-panel p-6 border-t-4 border-blue-500">
+        <h6 class="text-gray-400 uppercase text-xs font-bold tracking-wider mb-2">Actual Cash Outflow</h6>
+        <h2 class="text-3xl font-bold text-white">₹{{ cash_outflow|floatformat:2 }}</h2>
+    </div>
+    <div class="glass-panel p-6 border-t-4 border-purple-500">
+        <h6 class="text-gray-400 uppercase text-xs font-bold tracking-wider mb-2">Current CC Spend</h6>
+        <h2 class="text-3xl font-bold text-white">₹{{ cc_spend|floatformat:2 }}</h2>
+    </div>
+    <div class="glass-panel p-6 border-t-4 border-red-500">
+        <h6 class="text-gray-400 uppercase text-xs font-bold tracking-wider mb-2">Projected Cash Burn</h6>
+        <h2 class="text-3xl font-bold text-white">₹{{ projected_burn|floatformat:2 }}</h2>
+    </div>
+</div>
+
+<!-- Smart Insights & Savings Goals -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    
+    <!-- Smart Insights Column -->
+    <div class="col-span-1 lg:col-span-1 flex flex-col gap-4">
+        <h3 class="text-xl font-bold text-white mb-2">Smart Insights</h3>
+        {% for insight in insights %}
+        <div class="glass-panel p-4 border-l-4 
+            {% if insight.type == 'danger' %}border-red-500 bg-red-900/10
+            {% elif insight.type == 'warning' %}border-yellow-500 bg-yellow-900/10
+            {% elif insight.type == 'info' %}border-blue-500 bg-blue-900/10
+            {% elif insight.type == 'tip' %}border-purple-500 bg-purple-900/10
+            {% else %}border-green-500 bg-green-900/10{% endif %}">
+            <div class="flex items-start gap-3">
+                {% if insight.type == 'danger' or insight.type == 'warning' %}
+                    <svg class="w-6 h-6 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                {% elif insight.type == 'info' %}
+                    <svg class="w-6 h-6 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% elif insight.type == 'tip' %}
+                    <svg class="w-6 h-6 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                {% else %}
+                    <svg class="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% endif %}
+                <p class="text-sm font-medium text-gray-200">{{ insight.message }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Savings Goals Column -->
+    <div class="col-span-1 lg:col-span-2 glass-panel p-6">
+        <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-2">
+            <h3 class="text-xl font-bold text-white">Savings Goals</h3>
+            <a href="{% url 'create_goal' %}" class="text-sm text-blue-400 hover:text-blue-300 font-medium">+ Add Goal</a>
+        </div>
+        <div class="space-y-6">
+            {% for goal in active_goals %}
+            <div>
+                <div class="flex justify-between items-end mb-2">
+                    <div>
+                        <h4 class="font-bold text-white">{{ goal.name }}</h4>
+                        <p class="text-xs text-gray-400">Target: ₹{{ goal.target_amount|floatformat:2 }}</p>
+                    </div>
+                    <div class="text-right">
+                        {% if goal.is_completed %}
+                            <p class="text-sm font-bold text-green-400">Savings Achieved!</p>
+                        {% else %}
+                            <p class="text-sm font-bold text-blue-400">₹{{ goal.current_amount|floatformat:2 }} Saved</p>
+                            <a href="{% url 'add_goal_funds' goal.pk %}" class="text-xs font-medium text-gray-300 hover:text-white bg-vault-700 hover:bg-vault-600 px-2 py-1 rounded transition mt-1 inline-block">Add Funds</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="w-full bg-vault-900 rounded-full h-3 border border-gray-700 overflow-hidden">
+                    {% if goal.is_completed %}
+                        <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full" style="width: 100%;"></div>
+                    {% else %}
+                        <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full" style="width: {{ goal.progress_percentage|default:0 }}%;"></div>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-6">
+                <p class="text-gray-400 text-sm mb-4">You have no active savings goals.</p>
+                <a href="{% url 'create_goal' %}" class="bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow transition">Start Saving</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <div class="glass-panel p-6">
+        <h5 class="text-white font-semibold mb-4 border-b border-gray-700 pb-2">Paid Categories (Total)</h5>
+        <div class="h-64 relative"><canvas id="categoryChart"></canvas></div>
+    </div>
+    <div class="glass-panel p-6">
+        <h5 class="text-white font-semibold mb-4 border-b border-gray-700 pb-2">Pending by Category</h5>
+        <div class="h-64 relative"><canvas id="unpaidChart"></canvas></div>
+    </div>
+    <div class="glass-panel p-6">
+        <h5 class="text-white font-semibold mb-4 border-b border-gray-700 pb-2">Payment Methods Used</h5>
+        <div class="h-64 relative"><canvas id="methodChart"></canvas></div>
+    </div>
+    <div class="glass-panel p-6">
+        <h5 class="text-white font-semibold mb-4 border-b border-gray-700 pb-2">Autopay Analytics</h5>
+        <div class="h-64 relative"><canvas id="autopayChart"></canvas></div>
+    </div>
+</div>
+
+<!-- Transaction Log -->
+<div class="glass-panel p-6 mb-12">
+    <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+        <h5 class="text-xl font-bold text-white">Transaction Log</h5>
+        <div class="flex gap-3">
+            <a href="{% url 'export_csv' %}?year={{ selected_year }}&month={{ selected_month }}" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Export CSV
+            </a>
+            <a href="{% url 'add_expense' %}" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-medium py-2 px-4 rounded-lg shadow-lg shadow-blue-500/30 transition flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Add Record
+            </a>
+        </div>
+    </div>
+    
+    <form method="GET" class="mb-6 flex">
+        <input type="hidden" name="year" value="{{ selected_year }}">
+        <input type="hidden" name="month" value="{{ selected_month }}">
+        <input type="hidden" name="week" value="{{ selected_week }}">
+        <div class="relative w-full max-w-sm">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <input type="text" name="q" class="bg-vault-900/50 border border-gray-700 text-white text-sm rounded-l-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 p-2.5" placeholder="Search transactions..." value="{{ query }}">
+        </div>
+        <button type="submit" class="bg-gray-700 hover:bg-gray-600 text-white text-sm px-4 rounded-r-lg border border-l-0 border-gray-700 transition">Search</button>
+    </form>
+    
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-300">
+            <thead class="text-xs text-gray-400 uppercase bg-vault-800/80 rounded-t-lg">
+                <tr>
+                    <th scope="col" class="px-4 py-3 rounded-tl-lg">Name</th>
+                    <th scope="col" class="px-4 py-3">Category</th>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Amount</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Method</th>
+                    <th scope="col" class="px-4 py-3">Shared</th>
+                    <th scope="col" class="px-4 py-3 rounded-tr-lg text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in expenses %}
+                <tr class="border-b border-gray-700/50 hover:bg-vault-800/50 transition {% if expense.is_cc_bill %}bg-yellow-900/20{% endif %}">
+                    <td class="px-4 py-4 font-semibold text-white">{{ expense.title }}</td>
+                    <td class="px-4 py-4"><span class="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded">{% if expense.is_cc_bill %}Credit Card Bill{% else %}{{ expense.category }}{% endif %}</span></td>
+                    <td class="px-4 py-4">{{ expense.due_date|date:"M d" }}</td>
+                    <td class="px-4 py-4 font-bold text-white">₹{{ expense.amount }}</td>
+                    <td class="px-4 py-4">
+                        {% if expense.status == 'Paid' %}
+                            <span class="bg-green-900/50 text-green-400 border border-green-800 text-xs px-2 py-1 rounded-full">Paid</span>
+                        {% else %}
+                            <span class="bg-yellow-900/50 text-yellow-400 border border-yellow-800 text-xs px-2 py-1 rounded-full">Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-4 text-gray-400">{{ expense.payment_method }}</td>
+                    <td class="px-4 py-4">
+                        {% if expense.is_shared %}
+                            <span class="text-blue-400 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg> Yes</span>
+                        {% else %}
+                            <span class="text-gray-500">No</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            {% if expense.is_virtual %}
+                                {% if expense.status == 'Pending' %}
+                                    <form method="POST" action="{% url 'settle_split' expense.split.id %}" class="inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-green-400 hover:text-green-300 bg-green-900/30 p-1.5 rounded transition" title="Pay Now">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            {% else %}
+                                <a href="{% url 'edit_expense' expense.pk %}" class="text-blue-400 hover:text-blue-300 bg-blue-900/30 p-1.5 rounded transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></a>
+                                <a href="{% url 'delete_expense' expense.pk %}" class="text-red-400 hover:text-red-300 bg-red-900/30 p-1.5 rounded transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No records found. time to add some!</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ chart_labels|json_script:"chartLabels" }}
+{{ chart_data|json_script:"chartData" }}
+{{ unpaid_chart_labels|json_script:"unpaidChartLabels" }}
+{{ unpaid_chart_data|json_script:"unpaidChartData" }}
+{{ method_chart_labels|json_script:"methodChartLabels" }}
+{{ method_chart_data|json_script:"methodChartData" }}
+{{ autopay_chart_labels|json_script:"autopayChartLabels" }}
+{{ autopay_chart_data|json_script:"autopayChartData" }}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        
+        // Premium modern pastel gradients
+        const catColors = {'Housing':'#3b82f6','Utilities':'#0ea5e9','Grocery':'#10b981','Food':'#22c55e','Transportation':'#f59e0b','Healthcare':'#ef4444','Entertainment':'#8b5cf6','Credit Card':'#64748b','Other':'#94a3b8'};
+        const methColors = {'Credit Card':'#8b5cf6','Debit Card':'#10b981','Cash':'#f59e0b','None':'#475569'};
+        const opts = {
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+                legend:{position:'right', labels: {color: '#cbd5e1', font: {size: 11}}},
+                tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', titleColor: '#fff', padding: 10, cornerRadius: 8, borderColor: '#334155', borderWidth: 1}
+            },
+            elements: { arc: { borderWidth: 0 } },
+            cutout: '70%' // Makes doughnuts thinner and more elegant
+        };
+
+        function draw(id,type,labels,data,colors){
+            if(labels.length>0){
+                new Chart(document.getElementById(id).getContext('2d'),{
+                    type:type,
+                    data:{labels:labels,datasets:[{data:data,backgroundColor:labels.map(l=>colors[l]||'#475569')}]},
+                    options: opts
+                });
+            } else {
+                document.getElementById(id).parentElement.innerHTML='<div class="h-full flex items-center justify-center text-gray-500 text-sm">No data available</div>';
+            }
+        }
+        
+        const chartLabels = JSON.parse(document.getElementById('chartLabels').textContent);
+        const chartData = JSON.parse(document.getElementById('chartData').textContent);
+        const unpaidChartLabels = JSON.parse(document.getElementById('unpaidChartLabels').textContent);
+        const unpaidChartData = JSON.parse(document.getElementById('unpaidChartData').textContent);
+        const methodChartLabels = JSON.parse(document.getElementById('methodChartLabels').textContent);
+        const methodChartData = JSON.parse(document.getElementById('methodChartData').textContent);
+        const autopayChartLabels = JSON.parse(document.getElementById('autopayChartLabels').textContent);
+        const autopayChartData = JSON.parse(document.getElementById('autopayChartData').textContent);
+
+        draw('categoryChart','doughnut',chartLabels,chartData,catColors);
+        draw('unpaidChart','doughnut',unpaidChartLabels,unpaidChartData,catColors);
+        draw('methodChart','pie',methodChartLabels,methodChartData,methColors);
+        
+        // Use doughnut for autopay chart to match the other charts
+        const apOpts = {...opts, cutout: '70%'};
+        if(autopayChartLabels.length>0){
+            new Chart(document.getElementById('autopayChart').getContext('2d'),{
+                type:'doughnut',
+                data:{labels:autopayChartLabels,datasets:[{data:autopayChartData,backgroundColor:autopayChartLabels.map(l=>catColors[l]||'#475569')}]},
+                options: apOpts
+            });
+        }else{
+            document.getElementById('autopayChart').parentElement.innerHTML='<div class="h-full flex items-center justify-center text-gray-500 text-sm">No data available</div>';
+        }
+    });
+</script>
+{% endblock %}

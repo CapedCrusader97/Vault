@@ -1,0 +1,75 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+<div class="glass-panel p-6 mb-8 flex justify-between items-center">
+    <div>
+        <h1 class="text-2xl font-bold text-white">{{ group.name }}</h1>
+        <p class="text-gray-400 text-sm">Group Details & Balances</p>
+    </div>
+    <a href="{% url 'groups_dashboard' %}" class="bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white font-medium py-2 px-4 rounded-lg shadow transition">
+        Back to Groups
+    </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Balances -->
+    <div class="col-span-1 glass-panel p-6">
+        <h3 class="text-xl font-bold text-white border-b border-gray-700 pb-4 mb-4">Group Balances</h3>
+        <ul class="space-y-4">
+            {% for b in balances %}
+            <li class="flex justify-between items-center bg-vault-900/50 p-4 rounded-lg">
+                <span class="font-medium text-white">{{ b.friend.username }}</span>
+                {% if b.balance > 0 %}
+                    <span class="text-green-400 font-bold flex items-center gap-1">Owes you ₹{{ b.balance|floatformat:2 }}</span>
+                {% elif b.balance < 0 %}
+                    <span class="text-red-400 font-bold flex items-center gap-1">You owe ₹{{ b.abs_balance|floatformat:2 }}</span>
+                {% else %}
+                    <span class="text-gray-500 font-medium">Settled Up</span>
+                {% endif %}
+            </li>
+            {% empty %}
+                <p class="text-gray-400 text-sm">No balances recorded yet.</p>
+            {% endfor %}
+        </ul>
+        <div class="mt-6 pt-4 border-t border-gray-700">
+            <p class="text-xs text-gray-500">Group balances show only expenses tied specifically to this group.</p>
+        </div>
+    </div>
+
+    <!-- Expenses -->
+    <div class="col-span-2 glass-panel p-6">
+        <div class="flex justify-between items-center border-b border-gray-700 pb-4 mb-4">
+            <h3 class="text-xl font-bold text-white">Group Expenses</h3>
+            <a href="{% url 'add_expense' %}?group={{ group.pk }}" class="text-blue-400 hover:text-blue-300 text-sm font-medium">+ Add New Record</a>
+        </div>
+        
+        <div class="space-y-3">
+            {% for expense in expenses %}
+            <div class="bg-vault-900/50 p-4 rounded-lg flex justify-between items-center border border-gray-700/50 hover:border-gray-600 transition">
+                <div class="flex-1">
+                    <h4 class="font-bold text-white text-lg">{{ expense.title }}</h4>
+                    <p class="text-xs text-gray-400 mt-1">{{ expense.due_date|date:"M d, Y" }} &bull; Paid by {% if expense.paid_by == request.user %}You{% else %}{{ expense.paid_by.username }}{% endif %}</p>
+                    {% if expense.notes %}
+                        <p class="text-sm text-gray-300 mt-2 bg-vault-800 p-2 rounded italic">"{{ expense.notes }}"</p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <p class="font-bold text-xl text-white">₹{{ expense.amount }}</p>
+                        {% if expense.is_shared %}
+                            <span class="text-xs text-purple-400 font-medium border border-purple-500/30 bg-purple-900/20 px-2 py-0.5 rounded-full mt-1 inline-block">{{ expense.split_type }} Split</span>
+                        {% endif %}
+                    </div>
+                    {% if expense.user == request.user %}
+                    <a href="{% url 'edit_expense' expense.pk %}" class="text-blue-400 hover:text-blue-300 text-sm font-medium px-3 py-1 border border-blue-500/30 rounded hover:bg-blue-500/10 transition">
+                        Edit
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+                <p class="text-gray-400 text-sm text-center py-4">No expenses strictly tied to this group yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

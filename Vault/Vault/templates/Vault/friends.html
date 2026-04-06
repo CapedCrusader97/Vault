@@ -1,0 +1,209 @@
+{% extends 'Vault/base.html' %}
+{% block content %}
+
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+        <svg class="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+        Shared Vault <span class="bg-blue-600 text-sm px-2 py-0.5 rounded-full ml-2">Beta</span>
+    </h1>
+    <p class="text-gray-400 mt-2">Split bills and track balances with your friends.</p>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Left Column: Add Friend & Pending -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Add Friend form -->
+        <div class="glass-panel p-6">
+            <h3 class="text-xl font-bold text-white mb-4">Add a Friend</h3>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="add_friend" value="1">
+                <div class="mb-4">
+                    {{ friend_form.username }}
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow shadow-blue-500/30 transition">Send Request</button>
+            </form>
+        </div>
+
+        <!-- Pending Requests -->
+        <div class="glass-panel p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center justify-between">
+                Friend Requests
+                {% if pending_requests %}<span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">{{ pending_requests|length }}</span>{% endif %}
+            </h3>
+            
+            {% if pending_requests %}
+                <div class="space-y-3">
+                    {% for req in pending_requests %}
+                        <div class="bg-vault-800/50 p-3 rounded-lg border border-gray-700 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">{{ req.user.username.0|upper }}</div>
+                                <span class="text-gray-200 font-medium">{{ req.user.username }}</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <form method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="accept_friend" value="1">
+                                    <input type="hidden" name="friendship_id" value="{{ req.id }}">
+                                    <button type="submit" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-1.5 px-3 rounded shadow transition">Accept</button>
+                                </form>
+                                <form method="POST" class="m-0">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="decline_friend" value="1">
+                                    <input type="hidden" name="friendship_id" value="{{ req.id }}">
+                                    <button type="submit" class="bg-red-600 hover:bg-red-500 text-white text-xs font-bold py-1.5 px-3 rounded shadow transition">Decline</button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-sm">No pending requests.</p>
+            {% endif %}
+        </div>
+
+        <!-- Pending Splits -->
+        <div class="glass-panel p-6">
+            <h3 class="text-xl font-bold text-white mb-4 flex items-center justify-between">
+                Pending Payments
+                {% if pending_splits %}<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{{ pending_splits|length }}</span>{% endif %}
+            </h3>
+            
+            {% if pending_splits %}
+                <div class="space-y-3">
+                    {% for split in pending_splits %}
+                        <div class="bg-vault-800/50 p-3 rounded-lg border border-gray-700 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-red-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">{{ split.creditor.username.0|upper }}</div>
+                                <div>
+                                    <span class="text-gray-200 font-medium">{{ split.expense.title }}</span>
+                                    <p class="text-sm text-gray-400">You owe {{ split.creditor.username }} ₹{{ split.amount|floatformat:2 }}</p>
+                                </div>
+                            </div>
+                            <form method="POST" action="{% url 'settle_split' split.id %}" class="m-0">
+                                {% csrf_token %}
+                                <button type="submit" class="bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-1.5 px-3 rounded shadow transition">Pay Now</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-500 text-sm">No pending payments.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Right Column: Balances -->
+    <div class="lg:col-span-2">
+        <div class="glass-panel p-6 h-full">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-white">Balances</h3>
+                <a href="{% url 'add_expense' %}" class="text-sm bg-vault-700 hover:bg-vault-600 text-white py-1.5 px-3 rounded-lg transition">+ Split Expense</a>
+            </div>
+            
+            {% if balances %}
+                <div class="space-y-4">
+                    {% for item in balances %}
+                        <div class="bg-vault-900/40 p-4 border border-gray-700/50 rounded-xl flex sm:flex-row flex-col justify-between items-center gap-4 transition hover:bg-vault-800/40">
+                            <div class="flex items-center gap-4 w-full sm:w-auto">
+                                <div class="w-12 h-12 rounded-full bg-vault-800 flex items-center justify-center text-gray-400 font-bold text-lg border border-gray-600">
+                                    {{ item.friend.username.0|upper }}
+                                </div>
+                                <div>
+                                    <h4 class="text-white font-bold text-lg">{{ item.friend.username }}</h4>
+                                    {% if item.balance > 0 %}
+                                        <p class="text-green-400 text-sm font-medium">owes you <span class="font-bold">₹{{ item.balance|floatformat:2 }}</span></p>
+                                    {% elif item.balance < 0 %}
+                                        <p class="text-red-400 text-sm font-medium">you owe <span class="font-bold">₹{{ item.balance|stringformat:"f"|slice:"1:"|floatformat:2 }}</span></p>
+                                    {% else %}
+                                        <p class="text-gray-500 text-sm">Settled up</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                {% if item.balance < 0 %}
+                                    <form method="POST" action="{% url 'settle_up' item.id %}" class="flex-1 min-w-[120px]">
+                                        {% csrf_token %}
+                                        <button type="submit" class="w-full bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600 font-medium text-sm py-2 px-3 rounded-2xl transition">Settle Up</button>
+                                    </form>
+                                {% elif item.balance > 0 %}
+                                    <button class="flex-1 min-w-[120px] bg-gray-700 text-gray-400 cursor-not-allowed font-medium text-sm py-2 px-3 rounded-2xl opacity-50">Waiting for payment</button>
+                                {% else %}
+                                    <div class="flex-1"></div>
+                                {% endif %}
+                                <button type="button" data-friend-name="{{ item.friend.username }}" data-friend-id="{{ item.friend.id }}" class="w-full min-w-[140px] bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600 font-medium text-sm py-2 px-3 rounded-2xl transition" onclick="openRemoveFriendModal(this)">Remove Friend</button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="flex flex-col items-center justify-center h-48 text-center">
+                    <svg class="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    <p class="text-gray-400">Add friends and add a shared expense to see balances.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div id="removeFriendModal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 px-4 py-8">
+    <div class="bg-vault-900 rounded-[2rem] border border-gray-700/70 p-8 w-full max-w-2xl shadow-2xl shadow-black/40">
+        <div class="flex flex-col gap-6">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-white">Remove friend</h2>
+                    <p id="removeFriendMessage" class="mt-3 text-sm leading-6 text-gray-400">Are you sure you want to remove this friend? This will settle all pending debts.</p>
+                </div>
+                <button type="button" class="rounded-full border border-gray-700/80 bg-vault-800/80 p-3 text-gray-400 transition hover:border-gray-500 hover:text-white" onclick="closeRemoveFriendModal()">
+                    <span class="text-xl">×</span>
+                </button>
+            </div>
+
+            <div class="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+                <div class="flex items-start gap-4">
+                    <div class="mt-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/15 text-red-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.64 18h12.72a2 2 0 001.84-2.76l-2.8-5.23A2 2 0 0015.56 8H8.44a2 2 0 00-1.84 1.21L3.8 14.23A2 2 0 005.64 18z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">Confirm friend removal</h3>
+                        <p class="mt-2 text-sm text-gray-400">Removing a friend will clear the friendship and settle any pending split debts between you. This action cannot be undone directly.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" id="removeFriendForm" class="grid gap-4 sm:grid-cols-2">
+                {% csrf_token %}
+                <input type="hidden" name="remove_friend" value="1">
+                <input type="hidden" name="friend_id" id="removeFriendId" value="">
+                <button type="button" onclick="closeRemoveFriendModal()" class="w-full rounded-3xl border border-gray-700/80 bg-vault-800/80 px-6 py-3 text-sm font-semibold text-gray-200 transition hover:bg-vault-700">Cancel</button>
+                <button type="submit" class="w-full rounded-3xl bg-gradient-to-r from-red-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/20 transition hover:from-red-400 hover:to-orange-400">Yes, remove friend</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Style the django generated text input
+    document.addEventListener("DOMContentLoaded", function() {
+        const input = document.querySelector('input[name="username"]');
+        if (input) {
+            input.className = "bg-vault-900/50 border border-gray-700 text-white sm:text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-3";
+            input.placeholder = "Enter friend's username...";
+        }
+    });
+
+    function openRemoveFriendModal(button) {
+        const friendName = button.dataset.friendName;
+        const friendId = button.dataset.friendId;
+        document.getElementById('removeFriendId').value = friendId;
+        document.getElementById('removeFriendMessage').textContent = `Are you sure you want to remove ${friendName} as a friend? This will settle all pending debts.`;
+        document.getElementById('removeFriendModal').classList.remove('hidden');
+    }
+
+    function closeRemoveFriendModal() {
+        document.getElementById('removeFriendModal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
